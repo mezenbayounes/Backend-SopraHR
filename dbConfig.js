@@ -1,7 +1,7 @@
 
 import pg from 'pg';
 import { config } from 'dotenv';
-import { createUsersTableQuery } from '../BackEnd/src/models/User.js'; // Adjust the path as necessary
+import { createUsersTableQuery } from '../BackEnd/src/models/UserModel.js'; // Adjust the path as necessary
 
 const { Pool } = pg;
 config(); // This loads the environment variables from the .env file
@@ -22,7 +22,7 @@ export const connectionConfig = {
 
 
 const pool = new Pool(connectionConfig);
-async function initDb() {
+export async function initDb() {
   try {
     await pool.query(createUsersTableQuery);
     console.log('Users table created or verified successfully.');
@@ -34,4 +34,3 @@ async function initDb() {
   }
 }
 
-initDb();

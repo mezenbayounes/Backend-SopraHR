@@ -1,30 +1,18 @@
+
+import { config } from 'dotenv';
+import { createUsersTableQuery } from './src/models/UserModel.js'; 
+import { initDb } from  '../BackEnd/dbConfig.js'; 
+
+import { connectionConfig } from '../BackEnd/dbConfig.js'; 
+
+
 import pkg from 'pg';
+const { Pool } = pkg;
 
-import { connectionConfig } from './dbConfig.js'; 
-
-const { Client } = pkg;
-
-///////////Connection
-const client = new Client(connectionConfig);
-client.connect(err => {
-  if (err) {
-    console.error('Connection error', err.stack);
-  } else {
-    console.log('Connected to PostgreSQL');
-
-    // Execute a query
-    client.query('SELECT * FROM test', (err, res) => {
-      if (err) {
-        console.error(err);
-      } else {
-        console.log('Query results:', res.rows);
-      }
-      // Close the client connection after the query
-      client.end();
-    });
-  }
-});
+config(); // This loads the environment variables from the .env file
 
 
 
-///////////////
+// Initialize pool using connectionConfig
+const pool = new Pool(connectionConfig);
+initDb();
