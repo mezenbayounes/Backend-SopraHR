@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { createUser, findUserByEmail } from './userModel.js';
+import { createUser, findUserByEmail } from '../api/UserController.js';
 
 
 // Signup function
@@ -34,4 +34,3 @@ export const login = async (req, res) => {
         res.status(500).send({ error: "Error logging in" });
     }
 };
-

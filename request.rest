@@ -1,0 +1,10 @@
+###
+POST http://localhost:5432/auth/login
+
+Content-Type: application/json
+{
+
+"email" : "mezen.bayounes@esprit.tn",
+"password" : "123"
+
+}

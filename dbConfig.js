@@ -30,7 +30,7 @@ export async function initDb() {
     console.error('Error during database initialization:', err.stack);
     process.exit(1); // Exit with error
   } finally {
-    await pool.end(); // Close the database connection
+    //await pool.end(); // Close the database connection
   }
 }
 

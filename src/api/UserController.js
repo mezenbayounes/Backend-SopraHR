@@ -1,6 +1,6 @@
 import pkg from 'pg';
 import bcrypt from 'bcryptjs';
-import { connectionConfig } from './dbConfig.js'; 
+import { connectionConfig } from '../../dbConfig.js'; 
 
 const { Pool } = pkg;
 const pool = new Pool(connectionConfig);
