@@ -16,3 +16,20 @@ export const findUserByEmail = async (email) => {
     return res.rows[0];
 };
 
+export const getUser = async (req, res) => {
+    try {
+        console.log(req.body);  
+        const { email} = req.body;
+        console.log({ email}); 
+
+        const user = await findUserByEmail(email);
+        if (!user) {
+            return res.status(404).send({ error: "User not found" });
+        }
+        res.send({ user });
+    } catch (error) {
+        console.log(error)
+        res.status(500).send({ error: "Error logging in" });
+    }
+};
+

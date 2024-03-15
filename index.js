@@ -5,6 +5,8 @@ import { connectionConfig } from '../BackEnd/dbConfig.js';
 import pkg from 'pg';
 import express from 'express';
 import authRouter from './src/Router/authRouter.js';
+import userRouter from './src/Router/userRouter.js';
+
 import * as dotenv from 'dotenv';
 
 
@@ -19,7 +21,10 @@ initDb();
 const app = express();
 app.use(express.json());
 
+
 app.use('/auth', authRouter);
+app.use('/user', userRouter);
+
 
 
 

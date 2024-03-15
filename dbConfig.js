@@ -4,7 +4,7 @@ import { config } from 'dotenv';
 import { createUsersTableQuery } from '../BackEnd/src/models/UserModel.js'; // Adjust the path as necessary
 
 const { Pool } = pg;
-config(); // This loads the environment variables from the .env file
+config();
 
 
 
@@ -28,7 +28,7 @@ export async function initDb() {
     console.log('Users table created or verified successfully.');
   } catch (err) {
     console.error('Error during database initialization:', err.stack);
-    process.exit(1); // Exit with error
+    process.exit(1); 
   } finally {
     //await pool.end(); // Close the database connection
   }
