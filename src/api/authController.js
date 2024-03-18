@@ -26,8 +26,9 @@ export const signup = async (req, res) => {
             return res.status(409).send({ error: "User already exists" }); // 409 Conflict might be a suitable status code
         }
         const user = await createUser(username, email, password);
-        
-        res.status(201).send({ userId: user.id });
+        console.log(req.body.email)
+         SendOTP({body: {email: req.body.email}}); 
+        res.status(201).send( { userId: user.id  });
        
     } catch (error) {
         console.error(error);
@@ -38,6 +39,7 @@ export const signup = async (req, res) => {
 
 // Login function
 export const login = async (req, res) => {
+    const client = await pool.connect();
     try {
         console.log(req.body);  
         const { email, password } = req.body;
@@ -51,6 +53,12 @@ export const login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).send({ error: "Invalid credentials" });
+        }
+
+        const is_verified = await pool.query('SELECT verified FROM users   WHERE email = $1', [email]);
+
+        if (!is_verified.rows[0].verified) {
+            return res.status(403).send({ error: "Please verifie Your account" });
         }
 
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -104,7 +112,7 @@ export const SendOTP = async (req, res) => {
             from: 'mezen.bayounes@esprit.tn',
             to: user.email,
             subject: 'Password Reset OTP',
-            text: `Your password reset code is: ${otp}\nThis code will expire in 15 minutes.`,
+            text: `Your code is: ${otp}\nThis code will expire in 15 minutes.`,
             // You can also use HTML for the email content
         };
 
@@ -158,3 +166,40 @@ export async function ChangeForgotPassword(req, res) {
         client.release();
     }
 }
+
+export async function is_verified(req, res) {
+    // Extracting userId, inputOtp, and newPassword from the request body
+    const { email, inputOtp } = req.body;
+    const user = await findUserByEmail(email);
+    if (!user) {
+        return res.status(404).send({ error: "User not found" });
+    }
+    const client = await pool.connect();
+
+    try {
+        // Check OTP and update password in a single step
+        const result = await pool.query(`
+            UPDATE users 
+            SET  verified = true 
+            WHERE email = $1 AND otp = $2
+            RETURNING *
+        `, [ email, inputOtp]);
+
+        if (result.rows.length === 0) {
+            // If no rows are returned, it means no user was found or the OTP didn't match
+            res.status(404).send(' OTP does not match.');
+        } else {
+            // If the password was successfully updated
+            res.status(200).send('Account verified.');
+        }
+    } catch (error) {
+        // Log the error and send a 500 Internal Server Error response
+        console.error('Failed to verifie the Account.', error.message);
+        res.status(500).send('Failed to verifie the Account.');
+    } finally {
+        // Release the client back to the pool
+        client.release();
+    }
+}
+
+
