@@ -11,6 +11,7 @@ import pkg from 'pg';
 
 config();
 import * as dotenv from 'dotenv';
+import { log } from 'console';
 dotenv.config();
 const pool = new Pool(connectionConfig);
 
@@ -18,16 +19,23 @@ const pool = new Pool(connectionConfig);
 export const signup = async (req, res) => {
     try {
         console.log(req.body);  
-        const { username, email, password } = req.body;
-        console.log({ username, email, password }); 
+        const { username, email, password ,role} = req.body;
+        console.log({ username, email, password ,role}); 
+
+         // Validate the role, if necessary
+         if (!['ligne_manager', 'admin', 'manager','employee'].includes(role)) {
+            return res.status(400).send({ error: "Invalid role specified" });
+        }
        
         const existingUser = await findUserByEmail(email); // You'll need to implement this function
         if (existingUser) {
             return res.status(409).send({ error: "User already exists" }); // 409 Conflict might be a suitable status code
         }
-        const user = await createUser(username, email, password);
+        const user = await createUser(username, email, password,role);
         console.log(req.body.email)
          SendOTP({body: {email: req.body.email}}); 
+                 console.log(req.body.email)
+
         res.status(201).send( { userId: user.id  });
        
     } catch (error) {
@@ -69,10 +77,14 @@ export const login = async (req, res) => {
     }
 };
 
-async function saveOtpForUser(otp,  userId) {
+async function saveOtpForUser(otp,userId,expiresAt) {
     
     try {
-        const result = await pool.query('UPDATE users SET otp = $1  WHERE id = $2', [otp, userId]);
+        const result = await pool.query(
+            'UPDATE users SET otp = $1, otp_expires_at = $2 WHERE id = $3',
+            [otp, expiresAt, userId]
+        );
+
     } catch (error) {
         console.error('Error saving OTP:', error);
         throw error; 
@@ -93,10 +105,11 @@ export const SendOTP = async (req, res) => {
         const otp = crypto.randomInt(100000, 999999);
 
         // OTP expiration time (e.g., 15 minutes)
-        const expireTime = Date.now() + 15 * 60 * 1000; // 15 minutes from now
+        const expiresAtInSeconds = Math.floor((new Date().getTime() + 5 * 60000) / 1000);
+        const expiresAt = new Date(expiresAtInSeconds * 1000);
 
         // Save the OTP and its expiry in the database
-        await saveOtpForUser( otp,user.id);
+        await saveOtpForUser( otp,user.id,expiresAt);
 
         // Send email (this is a simplified example, customize as needed)
         const transporter = nodemailer.createTransport({
@@ -111,50 +124,127 @@ export const SendOTP = async (req, res) => {
         const mailOptions = {
             from: 'mezen.bayounes@esprit.tn',
             to: user.email,
-            subject: 'Password Reset OTP',
-            text: `Your code is: ${otp}\nThis code will expire in 15 minutes.`,
-            // You can also use HTML for the email content
+            subject: 'Code OTP',
+            html: `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .content {
+            padding: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>OTP Request</h2>
+
+        </div>
+        <div class="content">
+            <p>Hi,</p>
+            <p>You recently requested to reset your password for your account. Use the OTP below to proceed with resetting your password. This code is only valid for 15 minutes.</p>
+            <p style="text-align: center; margin: 20px 0; font-size: 24px; letter-spacing: 3px;"><strong>${otp}</strong></p>
+            <p>If you did not request a password reset, please ignore this email or contact support if you have any concerns.</p>
+        </div>
+        <div class="footer">
+            <p>Best Regards,<br>Sopra HR</p>
+        </div>
+    </div>
+</body>
+</html>
+ `
         };
 
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.error('Error sending email:', error);
-                return res.status(500).send({ error: 'Error sending OTP email' });
+                return res.send(500).send({ error: 'Error sending OTP email' });
             } else {
                 console.log('Email sent:', info.response);
                 return res.send({ message: 'OTP sent to your email' });
             }
         });
     } catch (error) {
-        console.error('Error in forgotPassword function:', error);
-        res.status(500).send({ error: "Error processing forgot password request" });
+        console.error('Error in send email function:', error);
+        res.status(500).send({ error: "Error processing send email request" });
     }
 };
 
 export async function ChangeForgotPassword(req, res) {
-    // Extracting userId, inputOtp, and newPassword from the request body
+    // Extracting email, inputOtp, and newPassword from the request body
     const { email, inputOtp, newPassword } = req.body;
+console.log(email);
+console.log(inputOtp);
+console.log(newPassword);
+
+    // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Find the user by email
     const user = await findUserByEmail(email);
+
+    // Check if the user exists
     if (!user) {
         return res.status(404).send({ error: "User not found" });
     }
+
+    // Get a client from the connection pool
     const client = await pool.connect();
 
     try {
-        // Check OTP and update password in a single step
-        const result = await pool.query(`
+        // Retrieve the user's OTP and its expiration time
+        const otpResult = await client.query(`
+            SELECT otp, otp_expires_at FROM users WHERE email = $1
+        `, [email]);
+
+        // Check if there's a user and if the OTP matches
+        if (otpResult.rows.length === 0 || otpResult.rows[0].otp != inputOtp) {
+            return res.status(404).send('OTP does not match or user not found.');
+        }
+
+        // Check if the OTP has expired
+        const otpExpiresAt = new Date(otpResult.rows[0].otp_expires_at);
+        if (new Date() > otpExpiresAt) {
+            return res.status(403).send('OTP has expired.');
+        }
+
+        // Update the user's password
+        const updateResult = await client.query(`
             UPDATE users 
-            SET password = $1 
+            SET password = $1, otp = NULL, otp_expires_at = NULL 
             WHERE email = $2 AND otp = $3
             RETURNING *
         `, [hashedPassword, email, inputOtp]);
 
-        if (result.rows.length === 0) {
-            // If no rows are returned, it means no user was found or the OTP didn't match
-            res.status(404).send(' OTP does not match.');
+        // Check if the password was successfully updated
+        if (updateResult.rows.length === 0) {
+            res.status(500).send('Failed to update password.');
         } else {
-            // If the password was successfully updated
             res.status(200).send('Password updated successfully.');
         }
     } catch (error) {
@@ -168,38 +258,68 @@ export async function ChangeForgotPassword(req, res) {
 }
 
 export async function is_verified(req, res) {
-    // Extracting userId, inputOtp, and newPassword from the request body
+    // Extracting email and inputOtp from the request body
     const { email, inputOtp } = req.body;
+    console.log(req.body.inputOtp);
+
+const inputOtpp=req.body.inputOtp;
+
+    // Find the user by email
     const user = await findUserByEmail(email);
+
+    // Check if the user exists
     if (!user) {
         return res.status(404).send({ error: "User not found" });
     }
+
+    // Get a client from the connection pool
     const client = await pool.connect();
+    console.log(email);
+    console.log(inputOtpp);
+    console.log("input:inputOtp");
+
+
+
 
     try {
-        // Check OTP and update password in a single step
-        const result = await pool.query(`
+        // Retrieve the user's OTP and its expiration time
+        const otpResult = await client.query(`
+            SELECT otp, otp_expires_at FROM users WHERE email = $1
+        `, [email]);
+
+        console.log(otpResult);
+
+        // Check if there's a user and if the OTP matches
+        if ( otpResult.rows.length === 0 || otpResult.rows[0].otp != inputOtpp) {
+            return res.status(404).send('OTP does not match or user not found.');
+        }
+
+        // Check if the OTP has expired
+        const otpExpiresAt = new Date(otpResult.rows[0].otp_expires_at);
+        if (new Date() > otpExpiresAt) {
+            return res.status(403).send('OTP has expired.');
+        }
+
+        // Verify the user's account
+        const updateResult = await client.query(`
             UPDATE users 
-            SET  verified = true 
+            SET verified = true, otp = NULL, otp_expires_at = NULL 
             WHERE email = $1 AND otp = $2
             RETURNING *
-        `, [ email, inputOtp]);
+        `, [email, inputOtpp]);
 
-        if (result.rows.length === 0) {
-            // If no rows are returned, it means no user was found or the OTP didn't match
-            res.status(404).send(' OTP does not match.');
+        // Check if the account was successfully verified
+        if (updateResult.rows.length === 0) {
+            res.status(500).send('Failed to verify the account.');
         } else {
-            // If the password was successfully updated
-            res.status(200).send('Account verified.');
+            res.status(200).send('Account verified successfully.');
         }
     } catch (error) {
         // Log the error and send a 500 Internal Server Error response
-        console.error('Failed to verifie the Account.', error.message);
-        res.status(500).send('Failed to verifie the Account.');
+        console.error('Failed to verify the account:', error.message);
+        res.status(500).send('Failed to verify the account.');
     } finally {
         // Release the client back to the pool
         client.release();
     }
 }
-
-
