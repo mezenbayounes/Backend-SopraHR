@@ -1,10 +1,11 @@
 import express from 'express';
 import { signup, login ,SendOTP,ChangeForgotPassword,is_verified} from '../api/authController.js';
+import upload from '../Middleware/multerConfig.js'
+
 
 const authRouter = express.Router();
 
-
-authRouter.post('/signup', signup);
+authRouter.post('/signup', upload, signup);
 authRouter.post('/login', login);
 authRouter.post('/SendOTP', SendOTP);
 authRouter.put('/ChangeForgotPassword', ChangeForgotPassword);

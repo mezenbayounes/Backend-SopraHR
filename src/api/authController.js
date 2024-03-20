@@ -4,7 +4,7 @@ import { config } from 'dotenv';
 import { createUser, findUserByEmail } from '../api/UserController.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import { connectionConfig } from '../../dbConfig.js'; 
+import { connectionConfig } from '../../dbConfig.js';
 const { Pool } = pkg;
 import pkg from 'pg';
 
@@ -18,26 +18,27 @@ const pool = new Pool(connectionConfig);
 // Signup function
 export const signup = async (req, res) => {
     try {
-        console.log(req.body);  
-        const { username, email, password ,role} = req.body;
-        console.log({ username, email, password ,role}); 
+        console.log(req.body);
+        const { username, email, password, role } = req.body;
+        console.log({ username, email, password, role });
 
-         // Validate the role, if necessary
-         if (!['ligne_manager', 'admin', 'manager','employee'].includes(role)) {
+        // Validate the role, if necessary
+        if (!['ligne_manager', 'admin', 'manager', 'employee'].includes(role)) {
             return res.status(400).send({ error: "Invalid role specified" });
         }
-       
+
         const existingUser = await findUserByEmail(email); // You'll need to implement this function
         if (existingUser) {
             return res.status(409).send({ error: "User already exists" }); // 409 Conflict might be a suitable status code
         }
-        const user = await createUser(username, email, password,role);
+        const imageUrl = req.file ? req.file.path : null;
+        const user = await createUser(username, email, password, role, imageUrl);
         console.log(req.body.email)
-         SendOTP({body: {email: req.body.email}}); 
-                 console.log(req.body.email)
+        SendOTP({ body: { email: req.body.email } });
+        console.log(req.body.email)
 
-        res.status(201).send( { userId: user.id  });
-       
+        res.status(201).send({ userId: user.id });
+
     } catch (error) {
         console.error(error);
         res.status(500).send({ error: "Error creating user" });
@@ -49,9 +50,9 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
     const client = await pool.connect();
     try {
-        console.log(req.body);  
+        console.log(req.body);
         const { email, password } = req.body;
-        console.log({ email, password }); 
+        console.log({ email, password });
 
         const user = await findUserByEmail(email);
         if (!user) {
@@ -77,8 +78,8 @@ export const login = async (req, res) => {
     }
 };
 
-async function saveOtpForUser(otp,userId,expiresAt) {
-    
+async function saveOtpForUser(otp, userId, expiresAt) {
+
     try {
         const result = await pool.query(
             'UPDATE users SET otp = $1, otp_expires_at = $2 WHERE id = $3',
@@ -87,7 +88,7 @@ async function saveOtpForUser(otp,userId,expiresAt) {
 
     } catch (error) {
         console.error('Error saving OTP:', error);
-        throw error; 
+        throw error;
     }
 }
 
@@ -109,7 +110,7 @@ export const SendOTP = async (req, res) => {
         const expiresAt = new Date(expiresAtInSeconds * 1000);
 
         // Save the OTP and its expiry in the database
-        await saveOtpForUser( otp,user.id,expiresAt);
+        await saveOtpForUser(otp, user.id, expiresAt);
 
         // Send email (this is a simplified example, customize as needed)
         const transporter = nodemailer.createTransport({
@@ -163,7 +164,6 @@ export const SendOTP = async (req, res) => {
     <div class="container">
         <div class="header">
             <h2>OTP Request</h2>
-
         </div>
         <div class="content">
             <p>Hi,</p>
@@ -198,9 +198,9 @@ export const SendOTP = async (req, res) => {
 export async function ChangeForgotPassword(req, res) {
     // Extracting email, inputOtp, and newPassword from the request body
     const { email, inputOtp, newPassword } = req.body;
-console.log(email);
-console.log(inputOtp);
-console.log(newPassword);
+    console.log(email);
+    console.log(inputOtp);
+    console.log(newPassword);
 
     // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -262,7 +262,7 @@ export async function is_verified(req, res) {
     const { email, inputOtp } = req.body;
     console.log(req.body.inputOtp);
 
-const inputOtpp=req.body.inputOtp;
+    const inputOtpp = req.body.inputOtp;
 
     // Find the user by email
     const user = await findUserByEmail(email);
@@ -290,7 +290,7 @@ const inputOtpp=req.body.inputOtp;
         console.log(otpResult);
 
         // Check if there's a user and if the OTP matches
-        if ( otpResult.rows.length === 0 || otpResult.rows[0].otp != inputOtpp) {
+        if (otpResult.rows.length === 0 || otpResult.rows[0].otp != inputOtpp) {
             return res.status(404).send('OTP does not match or user not found.');
         }
 
