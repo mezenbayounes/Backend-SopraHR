@@ -196,7 +196,7 @@ export const SendOTP = async (req, res) => {
 };
 
 export async function ChangeForgotPassword(req, res) {
-    // Extracting email, inputOtp, and newPassword from the request body
+    // Extracting email, inputOtp, and newPassword from the request bodyy
     const { email, inputOtp, newPassword } = req.body;
     console.log(email);
     console.log(inputOtp);

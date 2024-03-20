@@ -2,7 +2,7 @@
 import multer from 'multer';
 import path from 'path';
 
-// Set storage engine
+// Set storage enginee
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
         cb(null, 'assets/'); // Make sure this uploads directory exists
