@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { config } from 'dotenv';
-import { createUser, findUserByEmail } from '../api/UserController.js';
+import { createUser, findUserByEmail,findUserById ,updateUserDetails} from '../api/UserController.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import { connectionConfig } from '../../dbConfig.js';
@@ -323,3 +323,32 @@ export async function is_verified(req, res) {
         client.release();
     }
 }
+///update prob in image_url 
+export const updateUser = async (req, res) => {
+    
+    const {id, username, email, password, role } = req.body;
+    const imageUrl = req.file ? req.file.path : null; // Adjust according to your file handling logic
+console.log(req.file);
+console.log(id);
+
+    try {
+        const user = await findUserById(id);
+        if (!user) return res.status(404).send({ error: "User not found" });
+
+        if (!['ligne_manager', 'admin', 'manager', 'employee'].includes(role))
+            return res.status(400).send({ error: "Invalid role specified" });
+
+        if (email && email !== user.email) {
+            const existingUser = await findUserByEmail(email);
+            if (existingUser) return res.status(409).send({ error: "Email already in use" });
+        }
+
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
+        await updateUserDetails(id, username, email, role, hashedPassword, imageUrl);
+
+        res.status(200).send({ message: "User updated successfully" });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).send({ error: "Error updating user" });
+    }
+};
