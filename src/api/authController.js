@@ -9,6 +9,7 @@ const { Pool } = pkg;
 import pkg from 'pg';
 
 
+
 config();
 import * as dotenv from 'dotenv';
 import { log } from 'console';
@@ -31,7 +32,9 @@ export const signup = async (req, res) => {
         if (existingUser) {
             return res.status(409).send({ error: "User already exists" }); // 409 Conflict might be a suitable status code
         }
+        console.log("req file:",req.file)
         const imageUrl = req.file ? req.file.path : null;
+       
         const user = await createUser(username, email, password, role, imageUrl);
         console.log(req.body.email)
         SendOTP({ body: { email: req.body.email } });
@@ -72,6 +75,10 @@ export const login = async (req, res) => {
 
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
         res.send({ token });
+        console.log("jawna behy");
+        
+       
+
     } catch (error) {
         console.log(error)
         res.status(500).send({ error: "Error logging in" });

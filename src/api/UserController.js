@@ -7,6 +7,7 @@ const pool = new Pool(connectionConfig);
 //S
 export const createUser = async (username, email, password,role,imageUrl) => {
     const hashedPassword = await bcrypt.hash(password, 10);
+    
     const res = await pool.query('INSERT INTO users (username, email, password,role,image_url) VALUES ($1, $2, $3,$4,$5) RETURNING id', [username, email, hashedPassword,role,imageUrl]);
     return res.rows[0];
 };
