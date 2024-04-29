@@ -1,5 +1,5 @@
 import express from 'express';
-import { signup, login ,SendOTP,ChangeForgotPassword,is_verified,updateUser} from '../api/authController.js';
+import { signup, login ,SendOTP,ChangeForgotPassword,is_verified,updateUser} from '../api/User/authController.js';
 import upload from '../Middleware/multerConfig.js'
 //S
 

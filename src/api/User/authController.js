@@ -1,10 +1,10 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { config } from 'dotenv';
-import { createUser, findUserByEmail,findUserById ,updateUserDetails} from '../api/UserController.js';
+import { createUser, findUserByEmail,findUserById ,updateUserDetails} from '../User/UserController.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import { connectionConfig } from '../../dbConfig.js';
+import { connectionConfig } from '../../../dbConfig.js';
 const { Pool } = pkg;
 import pkg from 'pg';
 
