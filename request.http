@@ -1,7 +1,9 @@
 ###
-GET http://localhost:3000/equipe/GetEquipeById
+put http://localhost:3000/plateau/UpdatePlateau
 content-type: application/json
 
 {
-   "id":4
+   "plateauId":2,
+    "idManager":10,
+    "numberOfParties":3
 }

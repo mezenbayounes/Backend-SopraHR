@@ -4,6 +4,7 @@ import { config } from 'dotenv';
 import { createUsersTableQuery } from '../BackEnd/src/models/UserModel.js'; // Adjust the path as necessary
 import { createEnumQuery } from '../BackEnd/src/models/UserModel.js'; // Adjust the path as necessary
 import { createEquipeTableQuery } from '../BackEnd/src/models/EquipeModel.js'; // Adjust the path as necessary
+import { createPlateauTableQuery } from '../BackEnd/src/models/PlateauModel.js'; // Adjust the path as necessary
 
 
 const { Pool } = pg;
@@ -29,7 +30,10 @@ export async function initDb() {
   try {
     await pool.query(createEnumQuery);
     await pool.query(createUsersTableQuery);
+    await pool.query(createPlateauTableQuery);
     await pool.query(createEquipeTableQuery);
+    
+
 
    
 
@@ -37,6 +41,8 @@ export async function initDb() {
     console.log('role ENUM created or verified successfully.');
     console.log('Users table created or verified successfully.');
     console.log('Equipe table created or verified successfully.');
+    console.log('Plateau table created or verified successfully.');
+
 
 
 

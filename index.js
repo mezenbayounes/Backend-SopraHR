@@ -8,6 +8,8 @@ import express from 'express';
 import authRouter from './src/Router/authRouter.js';
 import userRouter from './src/Router/userRouter.js';
 import EquipeRouter from './src/Router/EquipeRouter.js';
+import PlateauRouter from './src/Router/PlateauRouter.js';
+
 
 
 import * as dotenv from 'dotenv';
@@ -31,6 +33,9 @@ app.use(cors());
 app.use('/auth', authRouter);
 app.use('/user', userRouter);
 app.use('/equipe', EquipeRouter);
+app.use('/plateau', PlateauRouter);
+
+
 
 
 app.use('/assets', express.static('assets'));
