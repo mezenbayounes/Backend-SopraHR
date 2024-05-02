@@ -9,6 +9,7 @@ import authRouter from './src/Router/authRouter.js';
 import userRouter from './src/Router/userRouter.js';
 import EquipeRouter from './src/Router/EquipeRouter.js';
 import PlateauRouter from './src/Router/PlateauRouter.js';
+import congeRouter from './src/Router/CongeRouter.js';
 
 
 
@@ -34,6 +35,7 @@ app.use('/auth', authRouter);
 app.use('/user', userRouter);
 app.use('/equipe', EquipeRouter);
 app.use('/plateau', PlateauRouter);
+app.use('/conge', congeRouter);
 
 
 

@@ -5,7 +5,7 @@ import { createUsersTableQuery } from '../BackEnd/src/models/UserModel.js'; // A
 import { createEnumQuery } from '../BackEnd/src/models/UserModel.js'; // Adjust the path as necessary
 import { createEquipeTableQuery } from '../BackEnd/src/models/EquipeModel.js'; // Adjust the path as necessary
 import { createPlateauTableQuery } from '../BackEnd/src/models/PlateauModel.js'; // Adjust the path as necessary
-
+import { createCongeTableQuery } from '../BackEnd/src/models/CongeModel.js'; // Adjust the path as necessary
 
 const { Pool } = pg;
 config();
@@ -32,6 +32,8 @@ export async function initDb() {
     await pool.query(createUsersTableQuery);
     await pool.query(createPlateauTableQuery);
     await pool.query(createEquipeTableQuery);
+    await pool.query(createCongeTableQuery);
+
     
 
 
@@ -42,6 +44,8 @@ export async function initDb() {
     console.log('Users table created or verified successfully.');
     console.log('Equipe table created or verified successfully.');
     console.log('Plateau table created or verified successfully.');
+    console.log('Congé table created or verified successfully.');
+
 
 
 
