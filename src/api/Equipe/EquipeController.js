@@ -1,12 +1,27 @@
 import pkg from "pg";
 import { connectionConfig } from "../../../dbConfig.js";
+import jwt from "jsonwebtoken";
+import * as dotenv from "dotenv";
 
+dotenv.config();
 const { Pool } = pkg;
 const pool = new Pool(connectionConfig);
 
 export const CreateEquipe = async (req, result) => {
   const { idManager, idLigneManager, idPlateau, Partie, employees } = req.body;
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
+
   try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return result.status(401).json({ error: "Token expired" });
+    }
+
+    // Token is valid and not expired, continue with the database operation
     const res = await pool.query(
       "INSERT INTO equipe (id_manager, id_ligne_manager, id_plateau, partie, employees) VALUES ($1, $2, $3, $4, $5) RETURNING id",
       [idManager, idLigneManager, idPlateau, Partie, employees]
@@ -18,14 +33,30 @@ export const CreateEquipe = async (req, result) => {
     result.send({ newInstanceId });
     return 0;
   } catch (error) {
-    console.error("Error occurred during insertion:", error);
-    throw error; // Rethrow the error to handle it further if needed
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return result.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during insertion:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
   }
 };
 
 export const GetEquipeById = async (req, result) => {
   const { id } = req.body;
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
+
   try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return result.status(401).json({ error: "Token expired" });
+    }
+
     console.log(id);
     const res = await pool.query("SELECT * FROM equipe WHERE id = $1", [id]);
 
@@ -39,16 +70,31 @@ export const GetEquipeById = async (req, result) => {
     result.send({ equipe });
     return 0;
   } catch (error) {
-    console.error("Error occurred during retrieval:", error);
-    throw error; // Rethrow the error to handle it further if needed
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return result.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during retrieval:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
   }
 };
 
 export const UpdateEquipeById = async (req, result) => {
   const { equipeId, idManager, idLigneManager, idPlateau, Partie, employees } =
     req.body;
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
 
   try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return result.status(401).json({ error: "Token expired" });
+    }
+
     const res = await pool.query(
       "UPDATE equipe SET id_manager = $1, id_ligne_manager = $2, id_plateau = $3, partie = $4, employees = $5 WHERE id = $6",
       [idManager, idLigneManager, idPlateau, Partie, employees, equipeId]
@@ -58,13 +104,29 @@ export const UpdateEquipeById = async (req, result) => {
 
     return 0; // Returns the number of affected rows
   } catch (error) {
-    console.error("Error occurred during update:", error);
-    throw error; // Rethrow the error to handle it further if needed
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return result.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during update:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
   }
 };
 
 export const GetAllEquipe = async (req, res) => {
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
+
   try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return res.status(401).json({ error: "Token expired" });
+    }
+
     const query = "SELECT * FROM equipe";
     const result = await pool.query(query);
     const equipes = result.rows;
@@ -74,15 +136,30 @@ export const GetAllEquipe = async (req, res) => {
 
     return equipes;
   } catch (error) {
-    console.error("Error occurred during retrieval:", error);
-    throw error; // Rethrow the error to handle it further if needed
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return res.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during retrieval:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
   }
 };
 
 export const DeleteEquipeById = async (req, result) => {
   const { equipeId } = req.body;
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
 
   try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return result.status(401).json({ error: "Token expired" });
+    }
+
     const query = "DELETE FROM equipe WHERE id = $1";
     const res = await pool.query(query, [equipeId]);
 
@@ -97,7 +174,12 @@ export const DeleteEquipeById = async (req, result) => {
     result.sendStatus(200);
     return 0;
   } catch (error) {
-    console.error("Error occurred during deletion:", error);
-    throw error; // Rethrow the error to handle it further if needed
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return result.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during deletion:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
   }
 };
