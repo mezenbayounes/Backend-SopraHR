@@ -115,7 +115,7 @@ export const SendOTP = async (req, res) => {
 
     // OTP expiration time (e.g., 15 minutes)
     const expiresAtInSeconds = Math.floor(
-      (new Date().getTime() + 5 * 60000) / 1000
+      (new Date().getTime() + 15 * 60000) / 1000
     );
     const expiresAt = new Date(expiresAtInSeconds * 1000);
 
@@ -378,5 +378,36 @@ export const updateUser = async (req, res) => {
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).send({ error: "Error updating user" });
+  }
+};
+export const GetAllUser = async (req, res) => {
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return res.status(401).json({ error: "Token expired" });
+    }
+
+    const query = "SELECT * FROM users";
+    const result = await pool.query(query);
+    const users = result.rows;
+
+    console.log("Retrieval successful. users:", users);
+    res.send({ users });
+
+    return users;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return res.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during retrieval:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
   }
 };
