@@ -180,4 +180,4 @@ export const DeletePlateauById = async (req, result) => {
       throw error; // Rethrow the error to handle it further if needed
     }
   }
-};
+};  

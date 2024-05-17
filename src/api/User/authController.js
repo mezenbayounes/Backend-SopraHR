@@ -79,7 +79,7 @@ export const login = async (req, res) => {
     }
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "5h",
     });
     res.send({ token });
     console.log("jawna behy");
@@ -401,6 +401,102 @@ export const GetAllUser = async (req, res) => {
     res.send({ users });
 
     return users;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) { 
+      console.error("Token expired error:", error);
+      return res.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during retrieval:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
+  }
+};
+
+
+export const GetAllLineManagers = async (req, res) => {
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return res.status(401).json({ error: "Token expired" });
+    }
+
+    const query = "SELECT id, username FROM users WHERE role = 'ligne_manager'";
+    const result = await pool.query(query);
+    const lineManagers = result.rows;
+
+    console.log("Retrieval successful. Line managers:", lineManagers);
+    res.send({ lineManagers });
+
+    return lineManagers;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return res.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during retrieval:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
+  }
+};
+
+export const GetAllManagers = async (req, res) => {
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return res.status(401).json({ error: "Token expired" });
+    }
+
+    const query = "SELECT id, username FROM users WHERE role = 'manager'";
+    const result = await pool.query(query);
+    const Managers = result.rows;
+
+    console.log("Retrieval successful. Line managers:", Managers);
+    res.send({ Managers });
+
+    return Managers;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return res.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during retrieval:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
+  }
+};
+export const GetAllEmployees = async (req, res) => {
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return res.status(401).json({ error: "Token expired" });
+    }
+
+    const query = "SELECT * FROM users WHERE role = 'employee'";
+    const result = await pool.query(query);
+    const employees = result.rows;
+
+    console.log("Retrieval successful. Line managers:", employees);
+    res.send({ employees });
+
+    return employees;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       console.error("Token expired error:", error);
