@@ -183,3 +183,46 @@ export const DeleteEquipeById = async (req, result) => {
     }
   }
 };
+
+export const DeleteEquipeByIds = async (req, result) => {
+  const { equipeIds } = req.body; // Assuming equipeIds is an array of IDs
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return result.status(401).json({ error: "Token expired" });
+    }
+
+    const deletePromises = equipeIds.map(async (equipeId) => {
+      const query = "DELETE FROM equipe WHERE id = $1";
+      const res = await pool.query(query, [equipeId]);
+      return res.rowCount;
+    });
+
+    const deleteResults = await Promise.all(deletePromises);
+    const totalRowCount = deleteResults.reduce((acc, rowCount) => acc + rowCount, 0);
+
+    if (totalRowCount === 0) {
+      result.status(404).send("equipe not found");
+      return;
+    }
+
+    console.log("equipe deleted. Total rows affected:", totalRowCount);
+    result.sendStatus(200);
+    return 0;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return result.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during deletion:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
+  }
+};
+

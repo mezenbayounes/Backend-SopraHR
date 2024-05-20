@@ -174,10 +174,51 @@ export const DeletePlateauById = async (req, result) => {
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       console.error("Token expired error:", error);
-      return result.status(401).json({ error: "Token expired" });
     } else {
       console.error("Error occurred during deletion:", error);
       throw error; // Rethrow the error to handle it further if needed
     }
   }
 };  
+
+export const DeletePlateauByIds = async (req, res) => {
+  const { plateauIds } = req.body;
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer.replace("Bearer ", "");
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return res.status(401).json({ error: "Token expired" });
+    }
+
+    const deletePromises = plateauIds.map(async (plateauId) => {
+      const query = "DELETE FROM plateau WHERE id = $1";
+      const deleteRes = await pool.query(query, [plateauId]);
+      return deleteRes.rowCount;
+    });
+
+    const deleteResults = await Promise.all(deletePromises);
+    const totalRowCount = deleteResults.reduce((acc, rowCount) => acc + rowCount, 0);
+
+    if (totalRowCount === 0) {
+      res.status(404).send("Plateau not found");
+      return;
+    }
+
+    console.log("Plateau deleted. Total rows affected:", totalRowCount);
+    res.sendStatus(200);
+    return 0;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return res.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during deletion:", error);
+      throw error; // Rethrow the error to handle it further if needed
+    }
+  }
+};

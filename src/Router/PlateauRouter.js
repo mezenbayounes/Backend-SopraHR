@@ -1,5 +1,5 @@
 import express from 'express';
-import {CreatePlateau,UpdatePlateau,GetPlateauById,GetAllPlateaux,DeletePlateauById}from '../api/Plateau/PlateauController.js'
+import {CreatePlateau,UpdatePlateau,GetPlateauById,GetAllPlateaux,DeletePlateauById,DeletePlateauByIds}from '../api/Plateau/PlateauController.js'
 
 const PlateauRouter = express.Router();
 
@@ -8,6 +8,8 @@ PlateauRouter.put('/UpdatePlateau', UpdatePlateau);
 PlateauRouter.get('/GetPlateauById', GetPlateauById);
 PlateauRouter.get('/GetAllPlateaux', GetAllPlateaux);
 PlateauRouter.delete('/DeletePlateauById', DeletePlateauById);
+PlateauRouter.delete('/DeletePlateauByIds', DeletePlateauByIds);
+
 
 
 
