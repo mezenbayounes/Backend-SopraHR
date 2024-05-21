@@ -1,14 +1,14 @@
 
-    # Welcome SopraHR BAckEnd
+ # Project Name
 
-    Plateau Manager & Recruitment Assistant
+Plateau Manager & Recruitment Assistant
 
 
-    ## Table of Contents
+## Table of Contents
 
-    - [Technologies](#technologies)
-    - [Installation](#installation)
-    - [Usage](#usage)
+- [Technologies](#technologies)
+- [Installation](#installation)
+- [Usage](#usage)
 - [Contributing](#contributing)
 - [License](#license)
 
