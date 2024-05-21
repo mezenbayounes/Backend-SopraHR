@@ -1,13 +1,13 @@
 
- # Project Name
+    # SopraHR BAckEnd
 
-Short description or introduction about the project.
+    
 
-## Table of Contents
+    ## Table of Contents
 
-- [Technologies](#technologies)
-- [Installation](#installation)
-- [Usage](#usage)
+    - [Technologies](#technologies)
+    - [Installation](#installation)
+    - [Usage](#usage)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -23,7 +23,7 @@ To install the necessary dependencies, run the following command:
 
 npm install
 
-Copier
+
 
 ## Usage
 
@@ -31,7 +31,7 @@ To start the development server, run the following command:
 
 npm run dev
 
-Copier
+
 
 ## Contributing
 
