@@ -1,7 +1,8 @@
 
-    # SopraHR BAckEnd
+    # Welcome SopraHR BAckEnd
 
-    
+    Plateau Manager & Recruitment Assistant
+
 
     ## Table of Contents
 
