@@ -1,18 +1,43 @@
-SopraHR_BackEnd
-Welcome !
-Made with nodeJs
 
-Technologies
-this project is made with :
+ # Project Name
 
-Node js version v21.7.1
-vsCode
-npm version 10.5.2
+Short description or introduction about the project.
 
-NodeJs
-Node.js est une plateforme logicielle libre en JavaScript, orientée vers les applications réseau évènementielles hautement concurrentes qui doivent pouvoir monter en charge.
+## Table of Contents
 
-Installez les dépendances et exécutez le serveur :
-Exécutez le serveur
-		$ npm install
-		$ npm run dev
+- [Technologies](#technologies)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Technologies
+
+- Node.js version v21.7.1
+- VS Code
+- npm version 10.5.2
+
+## Installation
+
+To install the necessary dependencies, run the following command:
+
+npm install
+
+Copier
+
+## Usage
+
+To start the development server, run the following command:
+
+npm run dev
+
+Copier
+
+## Contributing
+
+If you would like to contribute to this project, please follow these guidelines:
+
+1. Fork the repository
+2. Create a new branch
+3. Make your changes
+4. Submit a pull request
