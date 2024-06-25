@@ -37,9 +37,20 @@ export const getUser = async (req, res) => {
   }
 };
 
-export const findUserById = async (id) => {
-  const res = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
-  return res.rows[0];
+export const findUserById = async (req, res) => {
+  try {
+    const { id } = req.body; // Assume the ID is coming from the request parameters
+    const result = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).send({ error: "User not found" });
+    }
+
+    res.send({ user: result.rows[0] });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ error: "Internal Server Error" });
+  }
 };
 
 export const updateUserr = async (req, res) => {
