@@ -296,3 +296,115 @@ export const getCongesByUserId = async (req, result) => {
   }
 };
 
+export const getCongesByUserIds = async (req, result) => {
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer ? tokenWithBearer.replace("Bearer ", "") : null;
+
+  if (!token) {
+    return result.status(401).json({ error: "Authorization token missing" });
+  }
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return result.status(401).json({ error: "Token expired" });
+    }
+
+    // Extract user_ids from request body
+    const { user_ids } = req.body;
+
+    if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+      return result.status(400).json({ error: "Invalid or missing user IDs" });
+    }
+
+    // Build the query string with the correct number of placeholders
+    const placeholders = user_ids.map((_, index) => `$${index + 1}`).join(", ");
+    const query = `SELECT * FROM conge WHERE user_id IN (${placeholders})`;
+
+    // Execute the query with the user_ids as parameters
+    const res = await pool.query(query, user_ids);
+
+    const congés = res.rows;
+    if (congés.length === 0) {
+      return result.status(404).json({ message: "No congés found for these users" });
+    }
+
+    console.log("Congés found for users:", congés);
+    result.json(congés);
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return result.status(401).json({ error: "Token expired" });
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      console.error("JWT error:", error);
+      return result.status(401).json({ error: "Invalid token" });
+    } else {
+      console.error("Error occurred while fetching congés by user IDs:", error);
+      result.status(500).json({ error: "Internal server error" });
+    }
+  }
+};
+
+export const getCongesByManagerId = async (req, result) => {
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer ? tokenWithBearer.replace("Bearer ", "") : null;
+
+  if (!token) {
+    return result.status(401).json({ error: "Authorization token missing" });
+  }
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return result.status(401).json({ error: "Token expired" });
+    }
+
+    // Extract id_manager from request body
+    const { id_manager } = req.body;
+
+    if (!id_manager || isNaN(id_manager)) {
+      return result.status(400).json({ error: "Invalid or missing manager ID" });
+    }
+
+    // Query to get employees list for the specific id_manager
+    const employeesQuery = "SELECT employees FROM equipe WHERE id_manager = $1";
+    const employeesRes = await pool.query(employeesQuery, [id_manager]);
+
+    // Combine all employee arrays into a single array
+    const employees = employeesRes.rows.flatMap(row => row.employees);
+
+    if (employees.length === 0) {
+      return result.status(404).json({ message: "No employees found for this manager" });
+    }
+
+    // Query to get conge records for the list of employee IDs
+    const placeholders = employees.map((_, index) => `$${index + 1}`).join(", ");
+    const congesQuery = `SELECT * FROM conge WHERE user_id IN (${placeholders})`;
+    const congesRes = await pool.query(congesQuery, employees);
+
+    const conges = congesRes.rows;
+    if (conges.length === 0) {
+      return result.status(404).json({ message: "No congés found for these employees" });
+    }
+
+    console.log("Congés found for employees:", conges);
+    result.json(conges);
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return result.status(401).json({ error: "Token expired" });
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      console.error("JWT error:", error);
+      return result.status(401).json({ error: "Invalid token" });
+    } else {
+      console.error("Error occurred while fetching congés by manager ID:", error);
+      result.status(500).json({ error: "Internal server error" });
+    }
+  }
+};

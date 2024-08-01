@@ -226,3 +226,53 @@ export const DeleteEquipeByIds = async (req, result) => {
   }
 };
 
+export const getEmployeesByManagerId = async (req, result) => {
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer ? tokenWithBearer.replace("Bearer ", "") : null;
+
+  if (!token) {
+    return result.status(401).json({ error: "Authorization token missing" });
+  }
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return result.status(401).json({ error: "Token expired" });
+    }
+
+    // Extract id_manager from request body
+    const { id_manager } = req.body;
+
+    if (!id_manager || isNaN(id_manager)) {
+      return result.status(400).json({ error: "Invalid or missing manager ID" });
+    }
+
+    // Query to get employees lists for the specific id_manager
+    const query = "SELECT employees FROM equipe WHERE id_manager = $1";
+    const res = await pool.query(query, [id_manager]);
+
+    // Combine all employee arrays into a single array
+    const allEmployees = res.rows.flatMap(row => row.employees);
+
+    if (allEmployees.length === 0) {
+      return result.status(404).json({ message: "No employees found for this manager" });
+    }
+
+    console.log("Employees found for manager:", allEmployees);
+    result.json(allEmployees);
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return result.status(401).json({ error: "Token expired" });
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      console.error("JWT error:", error);
+      return result.status(401).json({ error: "Invalid token" });
+    } else {
+      console.error("Error occurred while fetching employees by manager ID:", error);
+      result.status(500).json({ error: "Internal server error" });
+    }
+  }
+};
