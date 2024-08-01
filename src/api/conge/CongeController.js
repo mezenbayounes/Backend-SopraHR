@@ -246,3 +246,53 @@ export const deleteConge = async (req, result) => {
     }
   }
 };
+
+export const getCongesByUserId = async (req, result) => {
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer ? tokenWithBearer.replace("Bearer ", "") : null;
+
+  if (!token) {
+    return result.status(401).json({ error: "Authorization token missing" });
+  }
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return result.status(401).json({ error: "Token expired" });
+    }
+
+    // Extract user_id from request body
+    const { user_id } = req.body;
+
+    if (!user_id || isNaN(user_id)) {
+      return result.status(400).json({ error: "Invalid or missing user ID" });
+    }
+
+    // Query to get conge records for the specific user_id
+    const query = "SELECT * FROM conge WHERE user_id = $1";
+    const res = await pool.query(query, [user_id]);
+
+    const congés = res.rows;
+    if (congés.length === 0) {
+      return result.status(404).json({ message: "No congés found for this user" });
+    }
+
+    console.log("Congés found for user:", congés);
+    result.json(congés);
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return result.status(401).json({ error: "Token expired" });
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      console.error("JWT error:", error);
+      return result.status(401).json({ error: "Invalid token" });
+    } else {
+      console.error("Error occurred while fetching congés by user ID:", error);
+      result.status(500).json({ error: "Internal server error" });
+    }
+  }
+};
+
