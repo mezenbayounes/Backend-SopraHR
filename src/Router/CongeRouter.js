@@ -11,7 +11,7 @@ congeRouter.put('/validateConge', validateConge);
 congeRouter.delete('/deleteConge', deleteConge);
 congeRouter.get('/getCongesByUserId', getCongesByUserId);
 congeRouter.get('/getCongesByUserIds', getCongesByUserIds);
-congeRouter.get('/getCongesByManagerId', getCongesByManagerId);
+congeRouter.post('/getCongesByManagerId', getCongesByManagerId);
 
 
 

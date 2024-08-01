@@ -508,3 +508,52 @@ export const GetAllEmployees = async (req, res) => {
     }
   }
 };
+export const getUserImageById = async (req, res) => {
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer ? tokenWithBearer.replace("Bearer ", "") : null;
+
+  if (!token) {
+    return res.status(401).json({ error: "Authorization token missing" });
+  }
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return res.status(401).json({ error: "Token expired" });
+    }
+
+    // Extract user ID from the request body  
+    const { id } = req.body;
+
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: "Invalid or missing user ID" });
+    }
+
+    // Query to get the user's image URL by their ID
+    const query = "SELECT image_url FROM users WHERE id = $1";
+    const result = await pool.query(query, [id]);
+
+    const user = result.rows[0];
+
+    if (!user || !user.image_url) {
+      return res.status(404).json({ message: "User or image not found" });
+    }
+
+    console.log("User image found:", user.image_url);
+    res.json({ image_url: user.image_url });
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return res.status(401).json({ error: "Token expired" });
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      console.error("JWT error:", error);
+      return res.status(401).json({ error: "Invalid token" });
+    } else {
+      console.error("Error occurred while fetching user image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+};
