@@ -9,6 +9,8 @@ import userRouter from "./src/Router/userRouter.js";
 import EquipeRouter from "./src/Router/EquipeRouter.js";
 import PlateauRouter from "./src/Router/PlateauRouter.js";
 import congeRouter from "./src/Router/CongeRouter.js";
+import remoteRouter from "./src/Router/RemoteRouter.js";
+
 
 import * as dotenv from "dotenv";
 
@@ -29,6 +31,8 @@ app.use("/user", userRouter);
 app.use("/equipe", EquipeRouter);
 app.use("/plateau", PlateauRouter);
 app.use("/conge", congeRouter);
+app.use("/remote", remoteRouter);
+
 
 app.use("/assets", express.static("assets"));
 

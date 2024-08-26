@@ -1,0 +1,10 @@
+export const createRemoteTableQuery = `
+  CREATE TABLE IF NOT EXISTS remote (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) NOT NULL,
+    date_remote DATE NOT NULL,
+    etat VARCHAR(50) DEFAULT 'EC' NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  );
+`;
