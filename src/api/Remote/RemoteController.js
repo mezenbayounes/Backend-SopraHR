@@ -9,44 +9,92 @@ const pool = new Pool(connectionConfig);
 
 
 export const CreateRemote = async (req, result) => {
-    const { userId, dateRemote, etat } = req.body;
-    const tokenWithBearer = req.headers.authorization;
-    const token = tokenWithBearer ? tokenWithBearer.replace("Bearer ", "") : null;
-  
-    if (!token) {
-      return result.status(401).json({ error: "No token provided" });
+  const { userId, dateRemote } = req.body;
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer ? tokenWithBearer.replace("Bearer ", "") : null;
+
+  if (!token) {
+    return result.status(401).json({ error: "No token provided" });
+  }
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return result.status(401).json({ error: "Token expired" });
     }
-  
-    try {
-      // Verify and decode the token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  
-      // Check if the token has expired
-      if (Date.now() >= decoded.exp * 1000) {
-        return result.status(401).json({ error: "Token expired" });
+
+    // Convert the requested date to a JavaScript Date object
+    const newRemoteDate = new Date(dateRemote);
+    const dayOfWeek = newRemoteDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 5 = Friday
+
+    // Fetch existing remote days for the user in the current week (Monday - Friday)
+    const weekStart = new Date(newRemoteDate);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Get Monday of the current week
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 4); // Get Friday of the current week
+
+    const existingRemotes = await pool.query(
+      `SELECT date_remote FROM remote WHERE user_id = $1 AND date_remote BETWEEN $2 AND $3`,
+      [userId, weekStart, weekEnd]
+    );
+
+    // Check if the user has already taken two remote days this week
+    if (existingRemotes.rows.length >= 2) {
+      return result.status(400).json({ error: "You can only take a maximum of two remote days per week." });
+    }
+
+    // Check for consecutive remote days
+    for (const remote of existingRemotes.rows) {
+      const remoteDate = new Date(remote.date_remote);
+      const dayDifference = Math.abs((newRemoteDate - remoteDate) / (1000 * 60 * 60 * 24));
+
+      // Ensure that two consecutive days are not allowed
+      if (dayDifference === 1) {
+        return result.status(400).json({ error: "You cannot take remote on consecutive days." });
       }
-  
-      // Token is valid and not expired, continue with the database operation
-      const res = await pool.query(
-        `INSERT INTO remote (user_id, date_remote) VALUES ($1, $2) RETURNING id`,
-        [userId, dateRemote] // Use default value 'EC' for etat if not provided
+    }
+
+    // Check if the user has taken a remote on Friday of the previous week
+    if (dayOfWeek === 1) { // If new request is for Monday
+      const previousFriday = new Date(newRemoteDate);
+      previousFriday.setDate(previousFriday.getDate() - (previousFriday.getDay() + 2)); // Get Friday of the previous week
+
+      const previousFridayRemote = await pool.query(
+        `SELECT date_remote FROM remote WHERE user_id = $1 AND date_remote = $2`,
+        [userId, previousFriday]
       );
-  
-      const newRemoteId = res.rows[0].id; // Get the new remote ID from the database
-  
-      console.log("Insertion successful. New remote ID:", newRemoteId, "User ID:", userId);
-      result.send({ newRemoteId });
-      return 0;
-    } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
-        console.error("Token expired error:", error);
-        return result.status(401).json({ error: "Token expired" });
-      } else {
-        console.error("Error occurred during insertion:", error);
-        return result.status(500).json({ error: "Database insertion error" });
+
+      if (previousFridayRemote.rows.length > 0) {
+        return result.status(400).json({ error: "You cannot take a remote on Monday if you had one on Friday of the previous week." });
       }
     }
-  };
+
+    // Proceed with the database insertion if all conditions are met
+    const res = await pool.query(
+      `INSERT INTO remote (user_id, date_remote) VALUES ($1, $2) RETURNING id`,
+      [userId, dateRemote]
+    );
+
+    const newRemoteId = res.rows[0].id;
+    console.log("Insertion successful. New remote ID:", newRemoteId, "User ID:", userId);
+    result.send({ newRemoteId });
+    return 0;
+
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return result.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during insertion:", error);
+      return result.status(500).json({ error: "Database insertion error" });
+    }
+  }
+};
+
+
 
   export const validateRemote = async (req, result) => {
     const { remoteId, etat } = req.body;
