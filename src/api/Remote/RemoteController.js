@@ -8,6 +8,8 @@ const pool = new Pool(connectionConfig);
 
 
 
+
+
 export const CreateRemote = async (req, result) => {
   const { userId, dateRemote } = req.body;
   const tokenWithBearer = req.headers.authorization;
@@ -72,6 +74,57 @@ export const CreateRemote = async (req, result) => {
       }
     }
 
+    // New condition: Check team size and valid remote requests for the day
+    const teamIdQuery = `
+      SELECT id
+      FROM equipe
+      WHERE $1 = ANY(employees);
+    `;
+    const teamSizeQuery = `
+      SELECT array_length(employees, 1) AS team_size
+FROM equipe
+WHERE id = $1;
+    `;
+    const validRequestsQuery = `
+      SELECT COUNT(*) AS valid_requests
+      FROM remote r
+      JOIN equipe e ON e.id = (
+        SELECT id
+        FROM equipe
+        WHERE $1 = ANY(employees)
+      )
+      WHERE r.date_remote = $2
+        AND r.user_id = ANY(e.employees)
+        AND r.etat = 'VALIDE';
+    `;
+
+    // Get team ID
+    const teamIdResult = await pool.query(teamIdQuery, [userId]);
+    const teamId = teamIdResult.rows[0]?.id;
+
+    if (!teamId) {
+      return result.status(400).json({ error: "Team not found for the user." });
+    }
+
+    // Get team size
+    const teamSizeResult = await pool.query(teamSizeQuery, [teamId]);
+    const teamSize = parseInt(teamSizeResult.rows[0].team_size, 10);
+
+    // Get valid remote requests
+    const validRequestsResult = await pool.query(validRequestsQuery, [userId, dateRemote]);
+    const validRequests = parseInt(validRequestsResult.rows[0].valid_requests, 10);
+
+    const threshold = Math.ceil(0.4* teamSize); // 60% of the team size
+
+    console.log("teamSizeResult",teamSizeResult)
+    console.log("validRequests",validRequests)
+    console.log("threshold",threshold)
+
+
+    if (validRequests >= threshold) {
+      return result.status(400).json({ error: "You cannot take a remote request on this day as it exceeds the 60% threshold of valid requests from your team." });
+    }
+
     // Proceed with the database insertion if all conditions are met
     const res = await pool.query(
       `INSERT INTO remote (user_id, date_remote) VALUES ($1, $2) RETURNING id`,
@@ -81,7 +134,6 @@ export const CreateRemote = async (req, result) => {
     const newRemoteId = res.rows[0].id;
     console.log("Insertion successful. New remote ID:", newRemoteId, "User ID:", userId);
     result.send({ newRemoteId });
-    return 0;
 
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
@@ -95,9 +147,8 @@ export const CreateRemote = async (req, result) => {
 };
 
 
-
-  export const validateRemote = async (req, result) => {
-    const { remoteId, etat } = req.body;
+  export const RefuseRemoteRequest = async (req, result) => {
+    const { remoteId } = req.body;
     const tokenWithBearer = req.headers.authorization;
     const token = tokenWithBearer ? tokenWithBearer.replace("Bearer ", "") : null;
   
@@ -116,7 +167,6 @@ export const CreateRemote = async (req, result) => {
   
       // Token is valid and not expired, proceed with database operation
       console.log("Remote ID:", remoteId);
-      console.log("New etat:", etat);
   
       const updateQuery = `
         UPDATE remote
@@ -126,7 +176,7 @@ export const CreateRemote = async (req, result) => {
         RETURNING id
       `;
   
-      const res = await pool.query(updateQuery, [etat, remoteId]);
+      const res = await pool.query(updateQuery, ["INVALIDE", remoteId]);
   
       if (res.rows.length === 0) {
         return result.status(404).json({ error: "Remote record not found" });
@@ -265,4 +315,129 @@ export const CreateRemote = async (req, result) => {
             result.status(500).json({ error: "Internal server error" });
         }
     }
+};
+
+
+export const getValidRemoteRequestsForEquipe = async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  const query = `
+    SELECT r.date_remote
+    FROM remote r
+    JOIN equipe e ON e.id_manager = (
+      SELECT id_manager
+      FROM equipe
+      WHERE $1 = ANY(employees)
+    )
+    WHERE r.user_id = ANY(e.employees)
+      AND r.etat = 'VALIDE';
+  `;
+
+  try {
+    const result = await pool.query(query, [userId]);
+    res.status(200).json(result.rows.map(row => row.date_remote));
+  } catch (error) {
+    console.error('Error fetching valid remote dates for equipe:', error);
+    res.status(500).json({ error: "Error fetching remote dates" });
+  }
+};
+
+export const validateRemoteRequest = async (req, res) => {
+  const { userId, remoteId } = req.body;
+
+  if (!userId || !remoteId) {
+    return res.status(400).json({ error: "User ID and Remote ID are required." });
+  }
+
+  try {
+    // Fetch the remote request to validate
+    const remoteQuery = `
+      SELECT date_remote
+      FROM remote
+      WHERE id = $1
+    `;
+    const remoteResult = await pool.query(remoteQuery, [remoteId]);
+
+    if (remoteResult.rows.length === 0) {
+      return res.status(404).json({ error: "Remote request not found." });
+    }
+
+    const dateRemote = remoteResult.rows[0].date_remote;
+
+    // Get team ID for the user
+    const teamIdQuery = `
+      SELECT id
+      FROM equipe
+      WHERE $1 = ANY(employees);
+    `;
+    const teamIdResult = await pool.query(teamIdQuery, [userId]);
+    const teamId = teamIdResult.rows[0]?.id;
+
+    if (!teamId) {
+      return res.status(400).json({ error: "Team not found for the user." });
+    }
+
+    // Get the team size
+    const teamSizeQuery = `
+      SELECT array_length(employees, 1) AS team_size
+      FROM equipe
+      WHERE id = $1;
+    `;
+    const teamSizeResult = await pool.query(teamSizeQuery, [teamId]);
+    const teamSize = parseInt(teamSizeResult.rows[0].team_size, 10);
+
+    if (teamSize === 0) {
+      return res.status(400).json({ error: "Team has no employees." });
+    }
+
+    // Get valid remote requests for the same date in the team
+    const validRequestsQuery = `
+      SELECT COUNT(*) AS valid_requests
+      FROM remote r
+      JOIN equipe e ON e.id = $1
+      WHERE r.date_remote = $2
+        AND r.user_id = ANY(e.employees)
+        AND r.etat = 'VALIDE';
+    `;
+    const validRequestsResult = await pool.query(validRequestsQuery, [teamId, dateRemote]);
+    const validRequests = parseInt(validRequestsResult.rows[0].valid_requests, 10);
+
+    // Calculate the threshold (60% of the team)
+    const threshold = Math.ceil(0.4 * teamSize);
+
+    // Check if the 60% threshold has been reached
+    if (validRequests >= threshold) {
+      return res.status(400).json({
+        error: `You cannot validate this remote request as more than 60% of the team is already on remote for the selected date (${validRequests}/${threshold}).`,
+      });
+    }
+
+    // Proceed to validate (update etat to 'VALIDE')
+    const updateRemoteQuery = `
+      UPDATE remote
+      SET etat = 'VALIDE', updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING id, etat;
+    `;
+    const updateResult = await pool.query(updateRemoteQuery, [remoteId]);
+
+    if (updateResult.rows.length === 0) {
+      return res.status(500).json({ error: "Failed to validate the remote request." });
+    }
+
+    // Return success message
+    return res.status(200).json({
+      message: "Remote request successfully validated.",
+      remoteId: updateResult.rows[0].id,
+      etat: updateResult.rows[0].etat,
+    });
+
+  } catch (error) {
+    console.error("Error validating remote request:", error);
+    return res.status(500).json({ error: "Server error during validation." });
+  }
 };

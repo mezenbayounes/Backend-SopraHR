@@ -1,12 +1,15 @@
 import express from 'express';
-import { CreateRemote,validateRemote,getRemotesByUserId,getRemotesByManagerId } from '../api/Remote/RemoteController.js';
+import { CreateRemote,RefuseRemoteRequest,getRemotesByUserId,getRemotesByManagerId,getValidRemoteRequestsForEquipe,validateRemoteRequest } from '../api/Remote/RemoteController.js';
 
 const RemoteRouter = express.Router();
 
 RemoteRouter.post('/CreateRemote', CreateRemote);
-RemoteRouter.put('/validateRemote', validateRemote);
+RemoteRouter.put('/RefuseRemoteRequest', RefuseRemoteRequest);
 RemoteRouter.post('/getRemotesByUserId', getRemotesByUserId);
 RemoteRouter.post('/getRemotesByManagerId', getRemotesByManagerId);
+RemoteRouter.post('/getValidRemoteRequestsForEquipe', getValidRemoteRequestsForEquipe);
+RemoteRouter.put('/validateRemoteRequest', validateRemoteRequest);
+
 
 
 
