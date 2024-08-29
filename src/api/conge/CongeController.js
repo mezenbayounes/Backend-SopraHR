@@ -272,7 +272,7 @@ export const getCongesByUserId = async (req, result) => {
     }
 
     // Query to get conge records for the specific user_id
-    const query = "SELECT * FROM conge WHERE user_id = $1";
+    const query = "SELECT * FROM conge WHERE user_id = $1  ORDER BY created_at DESC ";
     const res = await pool.query(query, [user_id]);
 
     const congés = res.rows;
@@ -322,7 +322,7 @@ export const getCongesByUserIds = async (req, result) => {
 
     // Build the query string with the correct number of placeholders
     const placeholders = user_ids.map((_, index) => `$${index + 1}`).join(", ");
-    const query = `SELECT * FROM conge WHERE user_id IN (${placeholders})`;
+    const query = `SELECT * FROM conge WHERE user_id IN (${placeholders}) ORDER BY created_at DESC`;
 
     // Execute the query with the user_ids as parameters
     const res = await pool.query(query, user_ids);
@@ -385,7 +385,7 @@ export const getCongesByManagerId = async (req, result) => {
 
     // Query to get conge records for the list of employee IDs
     const placeholders = employees.map((_, index) => `$${index + 1}`).join(", ");
-    const congesQuery = `SELECT * FROM conge WHERE user_id IN (${placeholders})`;
+    const congesQuery = `SELECT * FROM conge WHERE user_id IN (${placeholders})  ORDER BY created_at DESC`;
     const congesRes = await pool.query(congesQuery, employees);
 
     const conges = congesRes.rows;

@@ -222,7 +222,7 @@ WHERE id = $1;
       }
   
       // Query to get remote records for the specific user_id
-      const query = "SELECT * FROM remote WHERE user_id = $1";
+      const query = "SELECT * FROM remote WHERE user_id = $1  ORDER BY created_at DESC";
       const res = await pool.query(query, [user_id]);
   
       const remotes = res.rows;
@@ -293,7 +293,7 @@ WHERE id = $1;
 
         // Query to get remote records for the list of employee IDs
         const placeholders = employees.map((_, index) => `$${index + 1}`).join(", ");
-        const remoteQuery = `SELECT * FROM remote WHERE user_id IN (${placeholders})`;
+        const remoteQuery = `SELECT * FROM remote WHERE user_id IN (${placeholders}) ORDER BY created_at DESC`;
         const remoteRes = await pool.query(remoteQuery, employees);
 
         const remotes = remoteRes.rows;
