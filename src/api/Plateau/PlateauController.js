@@ -12,6 +12,20 @@ export const CreatePlateau = async (req, result) => {
   const tokenWithBearer = req.headers.authorization;
   const token = tokenWithBearer.replace("Bearer ", "");
 
+  // Validate required fields
+  if (!idManager || !numberOfParties) {
+    return result.status(400).json({ error: "Both idManager and numberOfParties are required." });
+  }
+
+  // Validate types and value ranges
+  if (typeof idManager !== 'number' || idManager <= 0) {
+    return result.status(400).json({ error: "idManager must be a positive number." });
+  }
+  
+  if (typeof numberOfParties !== 'number' || numberOfParties <= 0) {
+    return result.status(400).json({ error: "numberOfParties must be a positive number." });
+  }
+
   try {
     // Verify and decode the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -21,6 +35,7 @@ export const CreatePlateau = async (req, result) => {
       return result.status(401).json({ error: "Token expired" });
     }
 
+    // Proceed with database insertion if validation passes
     const res = await pool.query(
       "INSERT INTO plateau (id_manager, nmbr_de_partie) VALUES ($1, $2) RETURNING id",
       [idManager, numberOfParties]
@@ -29,15 +44,14 @@ export const CreatePlateau = async (req, result) => {
     const newPlateauId = res.rows[0].id; // Access the ID from the database response
 
     console.log("Insertion successful. New plateau ID:", newPlateauId);
-    result.send({ newPlateauId });
-    return 0;
+    result.status(201).json({ newPlateauId }); // Use 201 status code for successful creation
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       console.error("Token expired error:", error);
       return result.status(401).json({ error: "Token expired" });
     } else {
       console.error("Error occurred during insertion:", error);
-      throw error; // Rethrow the error to handle it further if needed
+      return result.status(500).json({ error: "Internal server error" }); // Return proper error response
     }
   }
 };

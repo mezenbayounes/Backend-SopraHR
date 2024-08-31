@@ -7,10 +7,26 @@ dotenv.config();
 const { Pool } = pkg;
 const pool = new Pool(connectionConfig);
 
-export const CreateEquipe = async (req, result) => {
+export const CreateEquipe = async (req, res) => {
   const { idManager, idLigneManager, idPlateau, Partie, employees } = req.body;
   const tokenWithBearer = req.headers.authorization;
   const token = tokenWithBearer.replace("Bearer ", "");
+
+  // Validate required fields
+  if (!idManager || !idLigneManager || !idPlateau || !Partie || !employees) {
+    return res.status(400).json({ error: "All fields (idManager, idLigneManager, idPlateau, Partie, employees) are required" });
+  }
+
+  // Validate types
+  if (
+    typeof idManager !== 'number' ||
+    typeof idLigneManager !== 'number' ||
+    typeof idPlateau !== 'number' ||
+    typeof Partie !== 'number' ||
+    !Array.isArray(employees) || !employees.every(emp => typeof emp === 'number')
+  ) {
+    return res.status(400).json({ error: "Invalid input types. Ensure idManager, idLigneManager, idPlateau, Partie are numbers and employees is an array of numbers" });
+  }
 
   try {
     // Verify and decode the token
@@ -18,27 +34,26 @@ export const CreateEquipe = async (req, result) => {
 
     // Check if the token has expired
     if (Date.now() >= decoded.exp * 1000) {
-      return result.status(401).json({ error: "Token expired" });
+      return res.status(401).json({ error: "Token expired" });
     }
 
-    // Token is valid and not expired, continue with the database operation
-    const res = await pool.query(
+    // Insert into the database
+    const result = await pool.query(
       "INSERT INTO equipe (id_manager, id_ligne_manager, id_plateau, partie, employees) VALUES ($1, $2, $3, $4, $5) RETURNING id",
       [idManager, idLigneManager, idPlateau, Partie, employees]
     );
 
-    const newInstanceId = res.rows[0].id; // Access the ID from the database response
+    const newInstanceId = result.rows[0].id; // Access the ID from the database response
 
     console.log("Insertion successful. New instance ID:", newInstanceId);
-    result.send({ newInstanceId });
-    return 0;
+    res.status(201).json({ newInstanceId });
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       console.error("Token expired error:", error);
-      return result.status(401).json({ error: "Token expired" });
+      return res.status(401).json({ error: "Token expired" });
     } else {
       console.error("Error occurred during insertion:", error);
-      throw error; // Rethrow the error to handle it further if needed
+      return res.status(500).json({ error: "Internal server error" });
     }
   }
 };

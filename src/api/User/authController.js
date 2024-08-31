@@ -41,9 +41,6 @@ export const signup = async (req, res) => {
     const user = await createUser(username, email, password, role, imageUrl);
     console.log(req.body.email);
 
-    SendOTP({ body: { email: req.body.email } });
-    console.log(req.body.email);
-
     res.status(201).send({ userId: user.id });
   } catch (error) {
     console.error(error);
@@ -69,14 +66,9 @@ export const login = async (req, res) => {
       return res.status(401).send({ error: "Invalid credentials" });
     }
 
-    const is_verified = await pool.query(
-      "SELECT verified FROM users   WHERE email = $1",
-      [email]
-    );
+   
 
-    if (!is_verified.rows[0].verified) {
-      return res.status(403).send({ error: "Please verifie Your account" });
-    }
+    
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
       expiresIn: "5h",
@@ -126,7 +118,7 @@ export const SendOTP = async (req, res) => {
     // Send email (this is a simplified example, customize as needed)
     const transporter = nodemailer.createTransport({
       // Transport config (e.g., for Gmail, Outlook, etc.)
-      service: "gmail",
+      service: "Outlook",
       auth: {
         user: process.env.EMAIL_USERNAME,
         pass: process.env.EMAIL_PASSWORD,
@@ -554,6 +546,51 @@ export const getUserImageById = async (req, res) => {
     } else {
       console.error("Error occurred while fetching user image:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  }
+};
+
+export const deleteUsersByIds = async (req, res) => {
+  const { userIds } = req.body;
+  const tokenWithBearer = req.headers.authorization;
+  const token = tokenWithBearer ? tokenWithBearer.replace("Bearer ", "") : null;
+
+  if (!token) {
+    return res.status(401).json({ error: "Token is required" });
+  }
+
+  try {
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if the token has expired
+    if (Date.now() >= decoded.exp * 1000) {
+      return res.status(401).json({ error: "Token expired" });
+    }
+
+    // Delete users by IDs
+    const deletePromises = userIds.map(async (userId) => {
+      const query = "DELETE FROM users WHERE id = $1";
+      const result = await pool.query(query, [userId]);
+      return result.rowCount;
+    });
+
+    const deleteResults = await Promise.all(deletePromises);
+    const totalRowCount = deleteResults.reduce((acc, rowCount) => acc + rowCount, 0);
+
+    if (totalRowCount === 0) {
+      return res.status(404).json({ error: "No users found to delete" });
+    }
+
+    console.log("Users deleted. Total rows affected:", totalRowCount);
+    res.sendStatus(200);
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("Token expired error:", error);
+      return res.status(401).json({ error: "Token expired" });
+    } else {
+      console.error("Error occurred during deletion:", error);
+      return res.status(500).json({ error: "Error deleting users" });
     }
   }
 };
