@@ -10,6 +10,7 @@ import EquipeRouter from "./src/Router/EquipeRouter.js";
 import PlateauRouter from "./src/Router/PlateauRouter.js";
 import congeRouter from "./src/Router/CongeRouter.js";
 import remoteRouter from "./src/Router/RemoteRouter.js";
+import { WebSocketServer } from "ws"; // Import WebSocketServer
 
 
 import * as dotenv from "dotenv";
@@ -33,10 +34,42 @@ app.use("/plateau", PlateauRouter);
 app.use("/conge", congeRouter);
 app.use("/remote", remoteRouter);
 
-
 app.use("/assets", express.static("assets"));
 
 const PORT = 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
+// WebSocket Integration
+const wss = new WebSocketServer({ server }); // Create WebSocket server on top of HTTP server
+
+// Handling WebSocket connections
+wss.on("connection", (ws) => {
+  console.log("New WebSocket connection");
+
+  // Send a welcome message to new clients
+  ws.send(JSON.stringify({ message: "Welcome to the WebSocket server" }));
+
+  // Handle incoming messages from clients
+  ws.on("message", (data) => {
+    const message = JSON.parse(data);
+    console.log("Received message from client:", message);
+  });
+
+  // Handle WebSocket disconnections
+  ws.on("close", () => {
+    console.log("Client disconnected");
+  });
+});
+
+// Function to broadcast a message to all connected clients
+export const broadcastNotification = (notification) => {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(notification));
+    }
+  });
+};
+

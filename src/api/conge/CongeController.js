@@ -2,6 +2,9 @@ import pkg from "pg";
 import { connectionConfig } from "../../../dbConfig.js";
 import jwt from "jsonwebtoken";
 import * as dotenv from "dotenv";
+import { broadcastNotification } from "../../../index.js"; // Adjust the path as necessary
+
+import { createNotification } from "../Notification/NotificationController.js"; // Adjust the path as necessary
 
 const { Pool } = pkg;
 const pool = new Pool(connectionConfig);
@@ -182,10 +185,7 @@ export const validateConge = async (req, result) => {
       return result.status(401).json({ error: "Token expired" });
     }
 
-    // Token is valid and not expired, continue with the database operation
-    console.log("Congé ID:", congeId);
-    console.log("New etat:", etat);
-
+    // Update the leave request (congé) status
     const updateQuery = `
       UPDATE conge
       SET etat = $1
@@ -194,25 +194,41 @@ export const validateConge = async (req, result) => {
     `;
 
     const res = await pool.query(updateQuery, [etat, congeId]);
-
     const updatedCongeId = res.rows[0].id; // Access the ID from the database response
 
-    console.log(
-      "Congé validation successful. Updated congé ID:",
-      updatedCongeId
-    );
-    result.send({ updatedCongeId });
+    // Notification logic after successful congé validation
+    const notificationContent = `Congé with ID ${congeId} has been ${etat}`;
+    const notificationType = "conge-validation"; // Custom type for congé validation notifications
+    const userId = decoded.userId; // Assuming you have the user ID from the decoded JWT
+
+    // Create notification record in the database
+    const notificationData = {
+      type: notificationType,
+      content: notificationContent,
+      user_id: userId
+    };
+    await createNotification(notificationData);
+
+    // Broadcast notification to all connected WebSocket clients
+    const notification = {
+      type: notificationType,
+      content: notificationContent,
+      userId
+    };
+    broadcastNotification(notification);
+
+    console.log("Congé validation successful. Updated congé ID:", updatedCongeId);
+    result.send({ updatedCongeId, notification });
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       console.error("Token expired error:", error);
       return result.status(401).json({ error: "Token expired" });
     } else {
       console.error("Error occurred during congé validation:", error);
-      throw error; // Rethrow the error to handle it further if needed
+      return result.status(500).json({ error: "Internal Server Error" });
     }
   }
 };
-
 export const deleteConge = async (req, result) => {
   const { congeId } = req.body;
   const tokenWithBearer = req.headers.authorization;
