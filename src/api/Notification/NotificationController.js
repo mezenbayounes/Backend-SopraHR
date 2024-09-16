@@ -1,7 +1,6 @@
 import pkg from "pg";
 import { connectionConfig } from "../../../dbConfig.js";
 import jwt from "jsonwebtoken";
-import { broadcastNotification } from "../../../index.js"; // WebSocket broadcast function
 
 const { Pool } = pkg;
 const pool = new Pool(connectionConfig);
@@ -135,22 +134,3 @@ export const updateUser = async (req, res) => {
   }
 };
 
-export const handleNotification = async (notification) => {
-    try {
-      // Save the notification to the database
-      const savedNotification = await createNotification(notification.type, notification.content, notification.userId);
-  
-      // Broadcast the notification to all connected clients
-      broadcastNotification({
-        type: savedNotification.type,
-        content: savedNotification.content,
-        userId: savedNotification.user_id,
-        createdAt: savedNotification.created_at
-      });
-  
-      return savedNotification;
-    } catch (error) {
-      console.error("Error handling notification:", error);
-      throw error;
-    }
-  };

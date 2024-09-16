@@ -82,34 +82,102 @@ const io = new Server(server, {
   },
 });
 
+
+
+const connectedUsers = {};
+
+var idforsend="";
+
 // Socket.io connection handling
 
-io.on("connection", (socket) => {
-  console.log("New client connected");
+io.on('connection', (socket) => {
 
-  // Emit a welcome message when a client connects
+  console.log('New client connected:', socket.id);
 
-  socket.emit("message", { message: "Welcome to the Socket.io server" });
+  idforsend=socket.id;
+
+  // Register user connection by userId
+
+  socket.on('register', (userId) => {
+
+    connectedUsers[userId] = socket.id; // Map userId to socket.id
+
+    console.log(`User ${userId} connected with socket ID ${socket.id}`);
+
+  });
+
+
+
 
   // Listen for messages from clients
 
-  socket.on("message", (data) => {
-    console.log("Received message from client:", data);
+  socket.on('message', (data) => {
+
+    console.log('Received message from client:', data);
+
+
+
 
     // Optionally broadcast the message to other clients
 
-    socket.broadcast.emit("message", data);
+    socket.broadcast.emit('message', data);
+
   });
 
-  // Listen for a disconnect event
 
-  socket.on("disconnect", () => {
-    console.log("Client disconnected");
+
+
+  // Handle disconnect
+
+  socket.on('disconnect', () => {
+
+    console.log('Client disconnected:', socket.id);
+
+    // Find and remove the user from the connectedUsers list
+
+    for (const userId in connectedUsers) {
+
+      if (connectedUsers[userId] === socket.id) {
+
+        delete connectedUsers[userId];
+
+        console.log(`User ${userId} disconnected`);
+
+        break;
+
+      }
+
+    }
+
   });
+
 });
 
-// Function to broadcast a notification to all clients
 
-export const broadcastNotification = (notification) => {
-  io.emit("notification", notification); // Broadcast the notification
+
+
+// Function to send notification to a specific user
+
+export const sendNotificationToUser = (userId, notification) => {
+
+  const socketId = idforsend; // Get socket ID for the user
+
+  if (socketId) {
+
+    io.to(socketId).emit('notification', notification); // Send notification to the specific user
+
+    console.log(`Notification sent to user: ${userId}`);
+
+  } else {
+
+    console.log(`User ${userId} is not connected`);
+
+  }
+
 };
+
+
+
+
+
+
