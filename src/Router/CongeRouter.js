@@ -9,7 +9,7 @@ congeRouter.get('/getConge', getConge);
 congeRouter.get('/getAllConges', getAllConges);
 congeRouter.put('/validateConge', validateConge);
 congeRouter.delete('/deleteConge', deleteConge);
-congeRouter.get('/getCongesByUserId', getCongesByUserId);
+congeRouter.post('/getCongesByUserId', getCongesByUserId);
 congeRouter.get('/getCongesByUserIds', getCongesByUserIds);
 congeRouter.post('/getCongesByManagerId', getCongesByManagerId);
 

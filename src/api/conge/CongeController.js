@@ -194,7 +194,7 @@ export const validateConge = async (req, result) => {
     `;
 
     const res = await pool.query(updateQuery, [etat, congeId]);
-    const updatedCongeId = res.rows[0].id; // Access the ID from the database response
+    const updatedCongeId = congeId; // Access the ID from the database response
 
     // Notification logic after successful congé validation
     const notificationContent = `Congé with ID ${congeId} has been ${etat}`;
