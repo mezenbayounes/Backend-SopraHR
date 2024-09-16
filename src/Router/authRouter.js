@@ -1,5 +1,5 @@
 import express from 'express';
-import { deleteUsersByIds,signup, login ,SendOTP,ChangeForgotPassword,is_verified,updateUser,GetAllUser,GetAllLineManagers,GetAllManagers,GetAllEmployees,getUserImageById} from '../api/User/authController.js';
+import { deleteUsersByIds,signup, login ,SendOTP,ChangeForgotPassword,is_verified,updateUser,GetAllUser,GetAllLineManagers,GetAllManagers,GetAllEmployees,getUserImageById,getManagerByUserId} from '../api/User/authController.js';
 import upload from '../Middleware/multerConfig.js'
 
 
@@ -17,6 +17,8 @@ authRouter.get('/GetAllManagers',GetAllManagers);
 authRouter.get('/GetAllEmployees',GetAllEmployees);
 authRouter.post('/getUserImageById',getUserImageById);
 authRouter.delete('/deleteUsersByIds',deleteUsersByIds);
+authRouter.post('/getManagerByUserId',getManagerByUserId);
+
 
 
 

@@ -455,7 +455,7 @@ export const GetAllManagers = async (req, res) => {
     const result = await pool.query(query);
     const Managers = result.rows;
 
-    console.log("Retrieval successful. Line managers:", Managers);
+    console.log("Retrieval successful. managers:", Managers);
     res.send({ Managers });
 
     return Managers;
@@ -592,5 +592,34 @@ export const deleteUsersByIds = async (req, res) => {
       console.error("Error occurred during deletion:", error);
       return res.status(500).json({ error: "Error deleting users" });
     }
+  }
+};
+
+export const getManagerByUserId = async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    // Query to get the manager ID from the 'equipe' table
+    const result = await pool.query(
+      `SELECT e.id_manager
+       FROM equipe e
+       JOIN users u ON u.id = ANY(e.employees)
+       WHERE u.id = $1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No manager found for this user' });
+    }
+
+    const managerId = result.rows[0].id_manager;
+    res.status(200).json({ managerId });
+  } catch (error) {
+    console.error('Error fetching manager:', error);
+    res.status(500).json({ error: 'An error occurred while fetching the manager' });
   }
 };
