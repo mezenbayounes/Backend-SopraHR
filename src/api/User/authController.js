@@ -81,6 +81,42 @@ export const login = async (req, res) => {
     res.status(500).send({ error: "Error logging in" });
   }
 };
+export const loginAdmin = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    console.log(req.body);
+    const { email, password } = req.body;
+    console.log({ email, password });
+
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(404).send({ error: "User not found" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).send({ error: "Invalid credentials" });
+    }
+
+    // Check if the user has an admin role
+    if (user.role !== 'admin') {
+      return res.status(403).send({ error: "Access denied. Admins only." });
+    }
+
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+      expiresIn: "5h",
+    });
+    const userID = user.id;
+    res.send({ token, userID });
+    console.log("Admin logged in successfully");
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ error: "Error logging in as admin" });
+  } finally {
+    client.release();
+  }
+};
+
 
 async function saveOtpForUser(otp, userId, expiresAt) {
   try {
